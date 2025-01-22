@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.12;
+pragma solidity ^0.8.28;
 
 import {PaymentRegistryStorage} from "./PaymentRegistryStorage.sol";
 
@@ -9,7 +9,16 @@ contract PaymentRegistry is PaymentRegistryStorage {
     event PaymentReceived(address indexed user, uint256 amount);
 
     // Event emitted when a new order is created
-    event OrderCreated(address indexed user, uint256 orderId, uint256 price, string itemUrl);
+    event OrderCreated(address indexed user, uint256 orderNonce, uint256 price, string itemUrl, uint256 orderId);
+
+    // Event emitted when an order is cancelled
+    event OrderCancelled(address indexed user, uint256 indexed orderId);
+
+    // Event emitted when an order is withdrawn
+    event OrderWithdrawn(address indexed user, uint256 indexed orderId);
+
+    // Event emitted when an order is completed
+    event OrderCompleted(address indexed user, uint256 indexed orderId);
 
 
     constructor(
@@ -27,17 +36,26 @@ contract PaymentRegistry is PaymentRegistryStorage {
         addFunds();
 
         uint256 userNonce = userState[user].nonce;
-        buyOrders[keccak256(OrderId(user, userNonce))] = BuyOrder(itemUrl, price, true);
-        emit OrderCreated(user, userNonce, price, itemUrl);
-        
+        uint256 orderId = keccak256(OrderId(user, userNonce));
+
+        buyOrders[orderId] = BuyOrder(itemUrl, price, OrderStatus.AVAILABLE, type(uint256).max);
+
         userState[user].nonce++;
+
+        emit OrderCreated(user, userNonce, price, itemUrl, orderId);
     }
 
     // Step #1 to cancel an order
     function cancelOrder(uint256 orderId) external {
-        require(buyOrders[orderId].isAvailable, "Order is not available");
-        buyOrders[orderId].isAvailable = false;
-        buyOrders[orderId].unlockBlockTime = block.timestamp + UNLOCK_BLOCK_TIME;
+        BuyOrder memory order = buyOrders[orderId];
+
+        require(order.buyer == msg.sender, "You are not the buyer of this order");
+        require(order.status == OrderStatus.AVAILABLE, "Order is not available");
+
+        order.status = OrderStatus.CANCELLED;
+        order.unlockBlockTime = block.timestamp + UNLOCK_BLOCK_TIME;
+
+        emit OrderCancelled(msg.sender, orderId);
     }
 
     // Step #2 to cancel an order, only runnable after a lock period
@@ -46,17 +64,21 @@ contract PaymentRegistry is PaymentRegistryStorage {
 
         require(msg.sender == order.buyer, "You are not the buyer of this order");
         require(block.timestamp >= order.unlockBlockTime, "Order is not ready to be withdrawn");
-        require(!order.isAvailable, "Order is not locked");
+        require(order.status == OrderStatus.CANCELLED, "Order was not cancelled");
 
         require(userState[msg.sender] >= order.price, "Insufficient funds"); // This should never happen
         userState[msg.sender] -= order.amount;
-
         payable(msg.sender).transfer(order.amount);
+
+        order.status = OrderStatus.WITHDRAWN;
+        emit OrderWithdrawn(msg.sender, orderId);
     }
 
     function cashOut(
         address user,
+        uint256 orderNonce,
         uint256 amount,
+        string calldata itemUrl,
         bytes32 proofCommitment,
         bytes32 pubInputCommitment,
         bytes32 provingSystemAuxDataCommitment,
@@ -67,6 +89,18 @@ contract PaymentRegistry is PaymentRegistryStorage {
     ) external {
         verifyZKEmailValidity(proofCommitment, pubInputCommitment, provingSystemAuxDataCommitment, proofGeneratorAddr, batchMerkleRoot, merkleProof, verificationDataBatchIndex);
         // withdraw(user, amount);
+
+        uint256 orderId = keccak256(OrderId(user, orderNonce));
+        BuyOrder memory order = buyOrders[orderId];
+
+        require(order.status == OrderStatus.AVAILABLE, "Order is not available");
+        require(order.buyer == user, "User is not the buyer of this order");
+        require(order.price == amount, "Incorrect amount of funds received");
+        require(order.itemUrl == itemUrl, "Incorrect item URL");
+
+        order.status = OrderStatus.COMPLETED;
+
+        emit OrderCompleted(user, orderId);
     }
 
     function verifyZKEmailValidity( //verifyBatchInclusion

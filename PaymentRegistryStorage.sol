@@ -1,10 +1,19 @@
-pragma solidity ^0.8.12;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.28;
 
 abstract contract PaymentRegistryStorage {
+
+    enum OrderStatus {
+        AVAILABLE,
+        CANCELLED,
+        WITHDRAWN,
+        COMPLETED
+    }
+
     struct BuyOrder {
         string itemUrl;
         uint256 price;
-        bool isAvailable; // TODO: make an enum
+        OrderStatus status;
         uint256 unlockBlockTime;
     }
 
@@ -18,9 +27,7 @@ abstract contract PaymentRegistryStorage {
         uint256 nonce; // Increments by 1 for each new order
     }
 
-
     mapping(address => UserState) public userState; // address => UserState
-
 
     mapping(uint256 => BuyOrder) public buyOrders; // keccak256(OrderId) => BuyOrder
 
