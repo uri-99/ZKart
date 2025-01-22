@@ -14,6 +14,7 @@ abstract contract PaymentRegistryStorage {
     struct BuyOrder {
         string itemUrl;
         uint256 price;
+        address token;
         OrderStatus status;
         uint256 unlockBlockTime;
         address reserver;
@@ -32,7 +33,7 @@ abstract contract PaymentRegistryStorage {
 
     mapping(address => UserState) public userState; // address => UserState
 
-    mapping(uint256 => BuyOrder) public buyOrders; // keccak256(OrderId) => BuyOrder
+    mapping(bytes32 => BuyOrder) public buyOrders; // keccak256(OrderId) => BuyOrder
 
     address public alignedServiceManager;
     address public paymentServiceAddr;

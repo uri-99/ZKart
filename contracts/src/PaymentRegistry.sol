@@ -2,6 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {PaymentRegistryStorage} from "./PaymentRegistryStorage.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract PaymentRegistry is PaymentRegistryStorage {
 
@@ -9,22 +10,22 @@ contract PaymentRegistry is PaymentRegistryStorage {
     event PaymentReceived(address indexed user, uint256 amount);
 
     // Event emitted when a new order is created
-    event OrderCreated(address indexed user, uint256 orderNonce, uint256 price, string itemUrl, uint256 orderId);
+    event OrderCreated(address indexed user, uint256 orderNonce, uint256 price, string itemUrl, bytes32 orderId);
 
     // Event emitted when an order is cancelled
-    event OrderCancelled(address indexed user, uint256 indexed orderId);
+    event OrderCancelled(address indexed user, bytes32 indexed orderId);
 
     // Event emitted when an order is withdrawn
-    event OrderWithdrawn(address indexed user, uint256 indexed orderId);
+    event OrderWithdrawn(address indexed user, bytes32 indexed orderId);
 
     // Event emitted when an order is completed
-    event OrderCompleted(address indexed user, uint256 indexed orderId);
+    event OrderCompleted(address indexed user, bytes32 indexed orderId);
 
     // Event emitted when an order is reserved
-    event OrderReserved(uint256 indexed orderId);
+    event OrderReserved(bytes32 indexed orderId);
 
     // Event emitted when an order is cleared
-    event OrderCleared(uint256 indexed orderId);
+    event OrderCleared(bytes32 indexed orderId);
 
 
     constructor(
@@ -37,25 +38,30 @@ contract PaymentRegistry is PaymentRegistryStorage {
         elfCommitment = _elfCommitment;
     }
 
-    function newOrder(address user, string calldata itemUrl, uint256 price) external payable {
-        require(msg.value == price, "Incorrect amount of funds received");
-        _registerFunds();
+    function newOrder(string calldata itemUrl, uint256 price, address token) external payable {
+        if (token == address(0)) {
+            require(msg.value == price, "Incorrect amount of funds received");
+            _registerFunds();
+        } else {
+            require(msg.value == 0, "Incorrect amount of funds received");
+            require(IERC20(token).transferFrom(msg.sender, address(this), price), "Transfer failed");
+        }
 
-        uint256 userNonce = userState[user].nonce;
-        uint256 orderId = keccak256(OrderId(user, userNonce));
+        uint256 userNonce = userState[msg.sender].nonce;
+        bytes32 orderId = keccak256(abi.encode(OrderId(msg.sender, userNonce)));
 
-        buyOrders[orderId] = BuyOrder(itemUrl, price, OrderStatus.AVAILABLE, type(uint256).max);
+        buyOrders[orderId] = BuyOrder(itemUrl, price, token, OrderStatus.AVAILABLE, type(uint256).max, address(0), 0);
 
-        userState[user].nonce++;
+        userState[msg.sender].nonce++;
 
-        emit OrderCreated(user, userNonce, price, itemUrl, orderId);
+        emit OrderCreated(msg.sender, userNonce, price, itemUrl, orderId);
     }
 
     // Step #1 to cancel an order
-    function cancelOrder(uint256 orderId) external {
+    function cancelOrder(uint256 orderNonce) external {
+        bytes32 orderId = keccak256(abi.encode(OrderId(msg.sender, orderNonce)));
         BuyOrder memory order = buyOrders[orderId];
 
-        require(order.buyer == msg.sender, "You are not the buyer of this order");
         require(order.status == OrderStatus.AVAILABLE, "Order is not available");
 
         order.status = OrderStatus.CANCELLED;
@@ -65,7 +71,8 @@ contract PaymentRegistry is PaymentRegistryStorage {
     }
 
     // Step #2 to cancel an order, only runnable after a lock period
-    function withdrawOrder(uint256 orderId) external {
+    function withdrawOrder(uint256 orderNonce) external {
+        bytes32 orderId = keccak256(abi.encode(OrderId(msg.sender, orderNonce)));
         BuyOrder memory order = buyOrders[orderId];
 
         require(msg.sender == order.buyer, "You are not the buyer of this order");
@@ -83,7 +90,7 @@ contract PaymentRegistry is PaymentRegistryStorage {
     // In a P2P environment we will need a `reserveOrder()`
     // To avoid multiple users fulfilling the same order
     // This also serves incentive for users to place orders
-    function reserveOrder(uint256 orderId) external payable {
+    function reserveOrder(bytes32 orderId) external payable {
         BuyOrder memory order = buyOrders[orderId];
         require(order.status == OrderStatus.AVAILABLE, "Order is not available");
         require(msg.value >= order.price * RESERVE_FEE / 100, "at least RESERVE_FEE % deposit needed to reserve an order");
@@ -94,7 +101,7 @@ contract PaymentRegistry is PaymentRegistryStorage {
         
         emit OrderReserved(orderId);
     }
-    function clearReservation(uint256 orderId) external {
+    function clearReservation(bytes32 orderId) external {
         BuyOrder memory order = buyOrders[orderId];
         require(order.status == OrderStatus.RESERVED, "Order is not reserved");
         require(order.reserveBlockTime < block.timestamp, "Order is not ready to be cleared");
@@ -121,7 +128,7 @@ contract PaymentRegistry is PaymentRegistryStorage {
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex
     ) external {
-        uint256 orderId = keccak256(OrderId(user, orderNonce));
+        bytes32 orderId = keccak256(OrderId(user, orderNonce));
         BuyOrder memory order = buyOrders[orderId];
         require(order.status == OrderStatus.RESERVED, "Order was not reserved");
         require(order.reserver == msg.sender, "You are not the reserver of this order");
@@ -154,9 +161,7 @@ contract PaymentRegistry is PaymentRegistryStorage {
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex
     ) public view {
-        if (elfCommitment != provingSystemAuxDataCommitment) {
-            revert InvalidElf(provingSystemAuxDataCommitment);
-        }
+        require(provingSystemAuxDataCommitment == elfCommitment, "Invalid Elf");
 
         (
             bool callWasSuccessfull,
