@@ -7,6 +7,7 @@ abstract contract PaymentRegistryStorage {
         AVAILABLE,
         CANCELLED,
         WITHDRAWN,
+        RESERVED,
         COMPLETED
     }
 
@@ -15,6 +16,8 @@ abstract contract PaymentRegistryStorage {
         uint256 price;
         OrderStatus status;
         uint256 unlockBlockTime;
+        address reserver;
+        uint256 reservePayment;
     }
 
     struct OrderId {
@@ -38,7 +41,8 @@ abstract contract PaymentRegistryStorage {
 
     uint256 public constant UNLOCK_BLOCK_TIME = 7 days;
 
-    
+    uint256 public constant RESERVE_FEE = 5; // 5% of the order price
+    uint256 public constant RESERVE_BLOCK_TIME = 7 days;
 
     // storage gap for upgradeability
     // solhint-disable-next-line var-name-mixedcase

@@ -20,6 +20,12 @@ contract PaymentRegistry is PaymentRegistryStorage {
     // Event emitted when an order is completed
     event OrderCompleted(address indexed user, uint256 indexed orderId);
 
+    // Event emitted when an order is reserved
+    event OrderReserved(uint256 indexed orderId);
+
+    // Event emitted when an order is cleared
+    event OrderCleared(uint256 indexed orderId);
+
 
     constructor(
         address _alignedServiceManager,
@@ -33,7 +39,7 @@ contract PaymentRegistry is PaymentRegistryStorage {
 
     function newOrder(address user, string calldata itemUrl, uint256 price) external payable {
         require(msg.value == price, "Incorrect amount of funds received");
-        addFunds();
+        _registerFunds();
 
         uint256 userNonce = userState[user].nonce;
         uint256 orderId = keccak256(OrderId(user, userNonce));
@@ -74,6 +80,34 @@ contract PaymentRegistry is PaymentRegistryStorage {
         emit OrderWithdrawn(msg.sender, orderId);
     }
 
+    // In a P2P environment we will need a `reserveOrder()`
+    // To avoid multiple users fulfilling the same order
+    // This also serves incentive for users to place orders
+    function reserveOrder(uint256 orderId) external payable {
+        BuyOrder memory order = buyOrders[orderId];
+        require(order.status == OrderStatus.AVAILABLE, "Order is not available");
+        require(msg.value >= order.price * RESERVE_FEE / 100, "at least RESERVE_FEE % deposit needed to reserve an order");
+        
+        order.status = OrderStatus.RESERVED;
+        order.reserver = msg.sender;
+        order.reservePayment = msg.value;
+        
+        emit OrderReserved(orderId);
+    }
+    function clearReservation(uint256 orderId) external {
+        BuyOrder memory order = buyOrders[orderId];
+        require(order.status == OrderStatus.RESERVED, "Order is not reserved");
+        require(order.reserveBlockTime < block.timestamp, "Order is not ready to be cleared");
+        require(order.buyer == msg.sender, "You are not the buyer of this order");
+        
+        order.status = OrderStatus.AVAILABLE;
+        // order.reserver = address(0); //maybe clear to save gas
+        // order.reservePayment = 0;
+        payable(msg.sender).transfer(order.reservePayment);
+
+        emit OrderCleared(orderId);
+    }
+
     function cashOut(
         address user,
         uint256 orderNonce,
@@ -87,20 +121,28 @@ contract PaymentRegistry is PaymentRegistryStorage {
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex
     ) external {
-        verifyZKEmailValidity(proofCommitment, pubInputCommitment, provingSystemAuxDataCommitment, proofGeneratorAddr, batchMerkleRoot, merkleProof, verificationDataBatchIndex);
-        // withdraw(user, amount);
-
         uint256 orderId = keccak256(OrderId(user, orderNonce));
         BuyOrder memory order = buyOrders[orderId];
-
-        require(order.status == OrderStatus.AVAILABLE, "Order is not available");
+        require(order.status == OrderStatus.RESERVED, "Order was not reserved");
+        require(order.reserver == msg.sender, "You are not the reserver of this order");
         require(order.buyer == user, "User is not the buyer of this order");
         require(order.price == amount, "Incorrect amount of funds received");
         require(order.itemUrl == itemUrl, "Incorrect item URL");
 
+        verifyZKEmailValidity(proofCommitment, pubInputCommitment, provingSystemAuxDataCommitment, proofGeneratorAddr, batchMerkleRoot, merkleProof, verificationDataBatchIndex);
+        
+        _withdraw(user, amount, order.reservePayment);
+
+
         order.status = OrderStatus.COMPLETED;
 
         emit OrderCompleted(user, orderId);
+    }
+
+    function _withdraw(address user, uint256 amount, uint256 reservePayment) internal {
+        require(userState[user] >= amount, "User has insufficient funds"); // This should never happen , we should also consider handling this error another way
+        userState[user] -= amount;
+        payable(msg.sender).transfer(amount + reservePayment);
     }
 
     function verifyZKEmailValidity( //verifyBatchInclusion
@@ -137,13 +179,13 @@ contract PaymentRegistry is PaymentRegistryStorage {
         require(abi.decode(proofIsIncluded, (bool)), "proof was not verified, or not included in the batch");
     }
 
-        // Only way to add funds to this contract is via `newOrder`
-    // Only way to remove funds from this contract is via `cancelOrder`
+    // Only way to add funds to this contract is via `newOrder()`
+    // Only way to remove funds from this contract is via `cancelOrder()` or via `cashOut()`
     receive() external payable {
         require(false, "This contract does not accept funds");
     }
 
-    function addFunds() internal payable {
+    function _registerFunds() internal payable {
         require(msg.value > 0, "No funds added");
         userState[msg.sender].userFunds += msg.value;
         emit PaymentReceived(msg.sender, msg.value);
