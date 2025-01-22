@@ -2,31 +2,17 @@
 pragma solidity ^0.8.28;
 
 import {PaymentRegistryStorage} from "./PaymentRegistryStorage.sol";
-// import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
 contract PaymentRegistry is PaymentRegistryStorage {
 
-    // Event emitted when a payment is recorded
     event PaymentReceived(address indexed user, uint256 amount, address token);
-
-    // Event emitted when a new order is created
     event OrderCreated(address indexed user, uint256 orderNonce, uint256 price, string itemUrl, bytes32 orderId);
-
-    // Event emitted when an order is cancelled
     event OrderCancelled(address indexed user, bytes32 indexed orderId);
-
-    // Event emitted when an order is withdrawn
     event OrderWithdrawn(address indexed user, bytes32 indexed orderId);
-
-    // Event emitted when an order is completed
     event OrderCompleted(address indexed user, bytes32 indexed orderId);
-
-    // Event emitted when an order is reserved
     event OrderReserved(bytes32 indexed orderId);
-
-    // Event emitted when an order is cleared
     event OrderCleared(bytes32 indexed orderId);
-
 
     constructor(
         address _alignedServiceManager,
@@ -38,16 +24,28 @@ contract PaymentRegistry is PaymentRegistryStorage {
         elfCommitment = _elfCommitment;
     }
 
-    function newOrder(string calldata itemUrl, uint256 price, address token) external payable {
+    function _receiveFunds(uint256 amount, address token) internal {
         if (token == address(0)) {
             require(msg.value > 0, "No funds added");
-            require(msg.value == price, "Incorrect amount of funds received");
+            require(msg.value == amount, "Incorrect amount of funds received");
             emit PaymentReceived(msg.sender, msg.value, address(0));
         } else {
             require(msg.value == 0, "Incorrect amount of funds received");
-            // require(IERC20(token).transferFrom(msg.sender, address(this), price), "Transfer failed");
-            emit PaymentReceived(msg.sender, price, token);
+            emit PaymentReceived(msg.sender, amount, token);
+            require(IERC20(token).transferFrom(msg.sender, address(this), amount), "Transfer failed");
         }
+    }
+
+    function _withdrawFunds(uint256 amount, address token) internal {
+        if (token == address(0)) {
+            payable(msg.sender).transfer(amount);
+        } else {
+            require(IERC20(token).transfer(msg.sender, amount), "Transfer failed");
+        }
+    }
+
+    function newOrder(string calldata itemUrl, uint256 price, address token) external payable {
+        _receiveFunds(price, token);
 
         uint256 orderNonce = userNonce[msg.sender];
         bytes32 orderId = keccak256(abi.encode(OrderId(msg.sender, orderNonce)));
@@ -80,14 +78,10 @@ contract PaymentRegistry is PaymentRegistryStorage {
         require(block.timestamp >= order.unlockBlockTime, "Order is not ready to be withdrawn");
         require(order.status == OrderStatus.CANCELLED, "Order was not cancelled");
 
-        if (order.token == address(0)) {
-            payable(msg.sender).transfer(order.price);
-        } else {
-            // require(IERC20(order.token).transfer(msg.sender, order.price), "Transfer failed");
-        }
-
-        order.status = OrderStatus.WITHDRAWN;
+        order.status = OrderStatus.WITHDRAWN; // Acts as reentrancy guard
         emit OrderWithdrawn(msg.sender, orderId);
+
+        _withdrawFunds(order.price, order.token);
     }
 
     // In a P2P environment we will need a `reserveOrder()`
@@ -97,19 +91,14 @@ contract PaymentRegistry is PaymentRegistryStorage {
         BuyOrder memory order = buyOrders[orderId];
         require(order.status == OrderStatus.AVAILABLE, "Order is not available");
 
-        uint256 reservePayment = order.price * RESERVE_FEE / 100;
-        if (order.token == address(0)) {
-            require(msg.value >= reservePayment, "at least RESERVE_FEE % deposit needed to reserve an order");
-        } else {
-            require(msg.value == 0, "Incorrect amount of funds received");
-            // require(IERC20(order.token).transferFrom(msg.sender, address(this), reservePayment), "Transfer failed");
-        }
-        
+        uint256 reservePaymentAmount = (order.price * RESERVE_FEE) / 100;
         order.status = OrderStatus.RESERVED;
         order.reserver = msg.sender;
-        order.reservePayment = reservePayment;
-        
+        order.reservePayment = reservePaymentAmount;
+
         emit OrderReserved(orderId);
+        
+        _receiveFunds(reservePaymentAmount, order.token);
     }
     
     function clearReservation(bytes32 orderId) external {
@@ -118,17 +107,13 @@ contract PaymentRegistry is PaymentRegistryStorage {
         require(order.unlockBlockTime < block.timestamp, "Order is not ready to be cleared");
         
         order.status = OrderStatus.AVAILABLE; // Acts as reentrancy guard
-
-        if (order.token == address(0)) {
-            payable(msg.sender).transfer(order.reservePayment);
-        } else {
-            // require(IERC20(order.token).transfer(msg.sender, order.reservePayment), "Transfer failed");
-        }
-
+        uint256 reservePaymentAmount = order.reservePayment;
         delete order.reserver;
         delete order.reservePayment;
 
         emit OrderCleared(orderId);
+
+        _withdrawFunds(reservePaymentAmount, order.token);
     }
 
     function cashOut(
@@ -152,17 +137,12 @@ contract PaymentRegistry is PaymentRegistryStorage {
         require(order.price == amount, "Incorrect amount of funds received");
         require(keccak256(abi.encode(order.itemUrl)) == keccak256(abi.encode(itemUrl)), "Incorrect item URL");
 
-        verifyZKEmailValidity(proofCommitment, pubInputCommitment, provingSystemAuxDataCommitment, proofGeneratorAddr, batchMerkleRoot, merkleProof, verificationDataBatchIndex);
-        
-        if (order.token == address(0)) {    
-            payable(msg.sender).transfer(amount + order.reservePayment);
-        } else {
-            // require(IERC20(order.token).transfer(msg.sender, amount + reservePayment), "Transfer failed");
-        }
-
         order.status = OrderStatus.COMPLETED;
-
         emit OrderCompleted(user, orderId);
+
+        verifyZKEmailValidity(proofCommitment, pubInputCommitment, provingSystemAuxDataCommitment, proofGeneratorAddr, batchMerkleRoot, merkleProof, verificationDataBatchIndex);
+    
+        _withdrawFunds(amount + order.reservePayment, order.token);
     }
 
     function verifyZKEmailValidity( //verifyBatchInclusion
