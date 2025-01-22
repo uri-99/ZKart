@@ -7,7 +7,7 @@ import {PaymentRegistryStorage} from "./PaymentRegistryStorage.sol";
 contract PaymentRegistry is PaymentRegistryStorage {
 
     // Event emitted when a payment is recorded
-    event PaymentReceived(address indexed user, uint256 amount);
+    event PaymentReceived(address indexed user, uint256 amount, address token);
 
     // Event emitted when a new order is created
     event OrderCreated(address indexed user, uint256 orderNonce, uint256 price, string itemUrl, bytes32 orderId);
@@ -40,21 +40,23 @@ contract PaymentRegistry is PaymentRegistryStorage {
 
     function newOrder(string calldata itemUrl, uint256 price, address token) external payable {
         if (token == address(0)) {
+            require(msg.value > 0, "No funds added");
             require(msg.value == price, "Incorrect amount of funds received");
-            _registerFunds();
+            emit PaymentReceived(msg.sender, msg.value, address(0));
         } else {
             require(msg.value == 0, "Incorrect amount of funds received");
             // require(IERC20(token).transferFrom(msg.sender, address(this), price), "Transfer failed");
+            emit PaymentReceived(msg.sender, price, token);
         }
 
-        uint256 userNonce = userState[msg.sender].nonce;
-        bytes32 orderId = keccak256(abi.encode(OrderId(msg.sender, userNonce)));
+        uint256 orderNonce = userNonce[msg.sender];
+        bytes32 orderId = keccak256(abi.encode(OrderId(msg.sender, orderNonce)));
 
         buyOrders[orderId] = BuyOrder(itemUrl, price, token, OrderStatus.AVAILABLE, type(uint256).max, address(0), 0);
 
-        userState[msg.sender].nonce++;
+        userNonce[msg.sender]++;
 
-        emit OrderCreated(msg.sender, userNonce, price, itemUrl, orderId);
+        emit OrderCreated(msg.sender, orderNonce, price, itemUrl, orderId);
     }
 
     // Step #1 to cancel an order
@@ -78,9 +80,11 @@ contract PaymentRegistry is PaymentRegistryStorage {
         require(block.timestamp >= order.unlockBlockTime, "Order is not ready to be withdrawn");
         require(order.status == OrderStatus.CANCELLED, "Order was not cancelled");
 
-        require(userState[msg.sender].userFunds >= order.price, "Insufficient funds"); // This should never happen
-        userState[msg.sender].userFunds -= order.price;
-        payable(msg.sender).transfer(order.price);
+        if (order.token == address(0)) {
+            payable(msg.sender).transfer(order.price);
+        } else {
+            // require(IERC20(order.token).transfer(msg.sender, order.price), "Transfer failed");
+        }
 
         order.status = OrderStatus.WITHDRAWN;
         emit OrderWithdrawn(msg.sender, orderId);
@@ -92,23 +96,37 @@ contract PaymentRegistry is PaymentRegistryStorage {
     function reserveOrder(bytes32 orderId) external payable {
         BuyOrder memory order = buyOrders[orderId];
         require(order.status == OrderStatus.AVAILABLE, "Order is not available");
-        require(msg.value >= order.price * RESERVE_FEE / 100, "at least RESERVE_FEE % deposit needed to reserve an order");
+
+        uint256 reservePayment = order.price * RESERVE_FEE / 100;
+        if (order.token == address(0)) {
+            require(msg.value >= reservePayment, "at least RESERVE_FEE % deposit needed to reserve an order");
+        } else {
+            require(msg.value == 0, "Incorrect amount of funds received");
+            // require(IERC20(order.token).transferFrom(msg.sender, address(this), reservePayment), "Transfer failed");
+        }
         
         order.status = OrderStatus.RESERVED;
         order.reserver = msg.sender;
-        order.reservePayment = msg.value;
+        order.reservePayment = reservePayment;
         
         emit OrderReserved(orderId);
     }
+    
     function clearReservation(bytes32 orderId) external {
         BuyOrder memory order = buyOrders[orderId];
         require(order.status == OrderStatus.RESERVED, "Order is not reserved");
         require(order.unlockBlockTime < block.timestamp, "Order is not ready to be cleared");
         
-        order.status = OrderStatus.AVAILABLE;
-        // order.reserver = address(0); //maybe clear to save gas
-        // order.reservePayment = 0;
-        payable(msg.sender).transfer(order.reservePayment);
+        order.status = OrderStatus.AVAILABLE; // Acts as reentrancy guard
+
+        if (order.token == address(0)) {
+            payable(msg.sender).transfer(order.reservePayment);
+        } else {
+            // require(IERC20(order.token).transfer(msg.sender, order.reservePayment), "Transfer failed");
+        }
+
+        delete order.reserver;
+        delete order.reservePayment;
 
         emit OrderCleared(orderId);
     }
@@ -136,18 +154,15 @@ contract PaymentRegistry is PaymentRegistryStorage {
 
         verifyZKEmailValidity(proofCommitment, pubInputCommitment, provingSystemAuxDataCommitment, proofGeneratorAddr, batchMerkleRoot, merkleProof, verificationDataBatchIndex);
         
-        _withdraw(user, amount, order.reservePayment);
-
+        if (order.token == address(0)) {    
+            payable(msg.sender).transfer(amount + order.reservePayment);
+        } else {
+            // require(IERC20(order.token).transfer(msg.sender, amount + reservePayment), "Transfer failed");
+        }
 
         order.status = OrderStatus.COMPLETED;
 
         emit OrderCompleted(user, orderId);
-    }
-
-    function _withdraw(address user, uint256 amount, uint256 reservePayment) internal {
-        require(userState[user].userFunds >= amount, "User has insufficient funds"); // This should never happen , we should also consider handling this error another way
-        userState[user].userFunds -= amount;
-        payable(msg.sender).transfer(amount + reservePayment);
     }
 
     function verifyZKEmailValidity( //verifyBatchInclusion
@@ -186,12 +201,6 @@ contract PaymentRegistry is PaymentRegistryStorage {
     // Only way to remove funds from this contract is via `cancelOrder()` or via `cashOut()`
     receive() external payable {
         require(false, "This contract does not accept funds");
-    }
-
-    function _registerFunds() internal {
-        require(msg.value > 0, "No funds added");
-        userState[msg.sender].userFunds += msg.value;
-        emit PaymentReceived(msg.sender, msg.value);
     }
 }
 

@@ -26,12 +26,7 @@ abstract contract PaymentRegistryStorage {
         uint256 nonce;
     }
 
-    struct UserState {
-        uint256 userFunds;
-        uint256 nonce; // Increments by 1 for each new order
-    }
-
-    mapping(address => UserState) public userState; // address => UserState
+    mapping(address => uint256) public userNonce;
 
     mapping(bytes32 => BuyOrder) public buyOrders; // keccak256(OrderId) => BuyOrder
 
