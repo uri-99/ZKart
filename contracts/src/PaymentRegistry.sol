@@ -14,6 +14,9 @@ contract PaymentRegistry is PaymentRegistryStorage {
     event OrderReserved(bytes32 indexed orderId);
     event OrderCleared(bytes32 indexed orderId);
 
+    // TODO: implement ownable, so only we can call `cashOut()`
+    // Anyhow, front-running is protected by the reservation flow, only the reserver can cashOut.
+
     constructor(
         address _alignedServiceManager,
         address _paymentServiceAddr,
@@ -184,3 +187,6 @@ contract PaymentRegistry is PaymentRegistryStorage {
     }
 }
 
+
+
+0x0000000000000000000000000000000000000000
