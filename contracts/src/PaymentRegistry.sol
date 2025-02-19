@@ -186,7 +186,3 @@ contract PaymentRegistry is PaymentRegistryStorage {
         require(false, "This contract does not accept funds");
     }
 }
-
-
-
-0x0000000000000000000000000000000000000000

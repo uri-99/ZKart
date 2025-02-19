@@ -40,7 +40,7 @@ contract Deploy is Script {
             address(paymentRegistry)
         );
 
-        // Add timestamp and network info
+        // Add timestamp
         vm.serializeString(
             deployed_addresses,
             "deploymentTimestamp",
@@ -48,7 +48,7 @@ contract Deploy is Script {
         );
         
         vm.writeJson(
-            vm.serializeString(deployed_addresses, "network", "anvil"),
+            vm.serializeString(deployed_addresses, "blockNumber", vm.toString(block.number)),
             outputPath
         );
     }

@@ -9,3 +9,7 @@ anvil_deploy: clean
 
 anvil_start:
 	anvil --load-state contracts/script/anvil/state/deployed-anvil-state.json --block-time 6
+
+holesky_deploy:
+	@echo "Deploying Contract in Holesky"
+	@. contracts/.env && . contracts/script/holesky/deploy_contracts.sh
