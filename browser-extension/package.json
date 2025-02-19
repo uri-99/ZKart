@@ -1,5 +1,6 @@
 {
 	"dependencies": {
+		"ethers": "^5.7.2",
 		"metamask-extension-provider": "^5.0.0"
 	}
 }

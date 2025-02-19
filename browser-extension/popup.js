@@ -1,4 +1,5 @@
 const createMetaMaskProvider = require('metamask-extension-provider')
+const ethers = require('ethers')
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize MetaMask provider
@@ -20,27 +21,53 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('buyCrypto').addEventListener('click', function() {
-        suggestSimpleTransaction(provider);
+        const price = document.getElementById('priceInput').value;
+        const address = document.getElementById('addressInput').value;
+        suggestSimpleTransaction(provider, price, address);
     });
   });
 
-async function suggestSimpleTransaction(provider) {
+async function suggestSimpleTransaction(provider, price, address) {
     if (typeof provider !== 'undefined') {
         try {
+            console.log('Price:', price);
+            console.log('Address:', address);
+
             // Request account access
             const accounts = await provider.request({ method: 'eth_requestAccounts' });
-            console.log("accounts");
-            console.log(accounts);
             const selectedAddress = accounts[0]; // Get the first account
-            
+
+            // Define the smart contract address and function parameters
+            const contractAddress = '0x563c71C680E03DE49B6f7Be00268088ed3E0c89F'; // TODO read from deployment_output.json
+            const itemUrl = 'https://example.com/product'; // TODO Replace with the current item URL
+            const price = 1000000000000000; // TODO Replace with the price set by the user
+            const tokenAddress = ethers.constants.AddressZero; // TODO Replace with the token address if applicable. User must select from a dropdown or something
+
+            // Encode the function call
+            const functionSignature = 'newOrder(string,uint256,address)';
+            const functionSelector = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(functionSignature)).slice(0, 10); // Get the first 4 bytes (10 hex characters)
+
+            const data = ethers.utils.defaultAbiCoder.encode(
+                ['string', 'uint256', 'address'],
+                [itemUrl, price, tokenAddress]
+            );
+
+            console.log("price in hex: ", price.toString(16));
 
             const transactionParameters = {
-                to: '0xda963fA72caC2A3aC01c642062fba3C099993D56', // Replace with the recipient address
-                from: selectedAddress, // Use the selected address
-                value: '0x01', // Replace with the amount in wei
-                gas: '0x5208', // Optional: gas limit (21000)
-                gasPrice: '0x3b9aca00', // Optional: gas price (1 Gwei)
+                to: contractAddress,
+                from: selectedAddress,
+                value: price.toString(16),
+                data: ethers.utils.hexlify(
+                    ethers.utils.concat([
+                        functionSelector,
+                        data // Encoded parameters
+                    ])
+                ),
             };
+
+            // Log the transaction parameters for debugging
+            console.log('Transaction Parameters:', transactionParameters);
 
             const txHash = await provider.request({
                 method: 'eth_sendTransaction',
