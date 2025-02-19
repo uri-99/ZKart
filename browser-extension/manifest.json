@@ -1,0 +1,16 @@
+{
+    "manifest_version": 3,
+    "name": "Product Info Scraper",
+    "version": "1.0",
+    "description": "Extracts product name and price from e-commerce pages",
+    "permissions": ["activeTab"],
+    "action": {
+      "default_popup": "popup.html"
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"]
+      }
+    ]
+  }
