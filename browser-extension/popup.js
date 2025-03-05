@@ -9,8 +9,11 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Failed to connect to MetaMask:', error)
     })
 
+    let itemUrl; // Declare itemUrl in the outer scope
+
     // Query the active tab
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      itemUrl = tabs[0].url; // Get the URL of the active tab
       // Send message to content script
       chrome.tabs.sendMessage(tabs[0].id, {action: "getProductInfo"}, function(response) {
         if (response) {
@@ -23,25 +26,24 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('buyCrypto').addEventListener('click', function() {
         const price = document.getElementById('priceInput').value;
         const address = document.getElementById('addressInput').value;
-        suggestSimpleTransaction(provider, price, address);
+        suggestSimpleTransaction(provider, itemUrl, price, address);
     });
   });
 
-async function suggestSimpleTransaction(provider, price, address) {
+async function suggestSimpleTransaction(provider, itemUrl, price, address) {
     if (typeof provider !== 'undefined') {
         try {
-            console.log('Price:', price);
-            console.log('Address:', address);
-
             // Request account access
             const accounts = await provider.request({ method: 'eth_requestAccounts' });
             const selectedAddress = accounts[0]; // Get the first account
 
             // Define the smart contract address and function parameters
             const contractAddress = '0x563c71C680E03DE49B6f7Be00268088ed3E0c89F'; // TODO read from deployment_output.json
-            const itemUrl = 'https://example.com/product'; // TODO Replace with the current item URL
-            const price = 1000000000000000; // TODO Replace with the price set by the user
+            // const price = 1000000000000000; // TODO Replace with the price set by the user
             const tokenAddress = ethers.constants.AddressZero; // TODO Replace with the token address if applicable. User must select from a dropdown or something
+
+            console.log('Price:', price);
+            console.log('Address:', address);
 
             // Encode the function call
             const functionSignature = 'newOrder(string,uint256,address)';
