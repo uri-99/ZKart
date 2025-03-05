@@ -13,3 +13,7 @@ anvil_start:
 holesky_deploy:
 	@echo "Deploying Contract in Holesky"
 	@. contracts/.env && . contracts/script/holesky/deploy_contracts.sh
+
+explorer_start:
+	@echo "Starting Explorer..."
+	@cd explorer && pnpm start
