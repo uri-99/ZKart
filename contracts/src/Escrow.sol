@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import {PaymentRegistryStorage} from "./PaymentRegistryStorage.sol";
+import {EscrowStorage} from "./EscrowStorage.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
-contract PaymentRegistry is PaymentRegistryStorage {
+contract Escrow is EscrowStorage {
 
     event PaymentReceived(address indexed user, uint256 amount, address token);
     event OrderCreated(address indexed user, uint256 orderNonce, uint256 price, string itemUrl, bytes32 orderId);
@@ -30,12 +30,12 @@ contract PaymentRegistry is PaymentRegistryStorage {
     function _receiveFunds(uint256 amount, address token) internal {
         if (token == address(0)) {
             require(msg.value > 0, "No funds added");
-            require(msg.value == amount, "Incorrect amount of funds received");
+            require(msg.value == amount, string.concat("Incorrect amount of funds received, expected: ", string(abi.encode(amount))));
             emit PaymentReceived(msg.sender, msg.value, address(0));
         } else {
-            require(msg.value == 0, "Incorrect amount of funds received");
-            emit PaymentReceived(msg.sender, amount, token);
+            require(msg.value == 0, "Incorrect amount of funds received, expected: 0");
             require(IERC20(token).transferFrom(msg.sender, address(this), amount), "Transfer failed");
+            emit PaymentReceived(msg.sender, amount, token);
         }
     }
 
@@ -47,13 +47,17 @@ contract PaymentRegistry is PaymentRegistryStorage {
         }
     }
 
+    function _calculate_reserve_fee(uint256 price) internal pure returns (uint256) {
+        return (price * RESERVE_FEE) / 100;
+    }
+
     function newOrder(string calldata itemUrl, uint256 price, address token) external payable {
         _receiveFunds(price, token);
 
         uint256 orderNonce = userNonce[msg.sender];
         bytes32 orderId = keccak256(abi.encode(OrderId(msg.sender, orderNonce)));
 
-        buyOrders[orderId] = BuyOrder(itemUrl, price, token, OrderStatus.AVAILABLE, type(uint256).max, address(0), 0);
+        buyOrders[orderId] = BuyOrder(itemUrl, price, token, OrderStatus.AVAILABLE, type(uint256).max, address(0), _calculate_reserve_fee(price));
 
         userNonce[msg.sender]++;
 
@@ -94,7 +98,7 @@ contract PaymentRegistry is PaymentRegistryStorage {
         BuyOrder memory order = buyOrders[orderId];
         require(order.status == OrderStatus.AVAILABLE, "Order is not available");
 
-        uint256 reservePaymentAmount = (order.price * RESERVE_FEE) / 100;
+        uint256 reservePaymentAmount = _calculate_reserve_fee(order.price);
         order.status = OrderStatus.RESERVED;
         order.reserver = msg.sender;
         order.reservePayment = reservePaymentAmount;
@@ -122,8 +126,6 @@ contract PaymentRegistry is PaymentRegistryStorage {
     function cashOut(
         address user,
         uint256 orderNonce,
-        uint256 amount,
-        string calldata itemUrl,
         bytes32 proofCommitment,
         bytes32 pubInputCommitment,
         bytes32 provingSystemAuxDataCommitment,
@@ -134,18 +136,15 @@ contract PaymentRegistry is PaymentRegistryStorage {
     ) external {
         bytes32 orderId = keccak256(abi.encode(OrderId(user, orderNonce)));
         BuyOrder memory order = buyOrders[orderId];
-        require(order.status == OrderStatus.RESERVED, "Order was not reserved");
+        require(order.status == OrderStatus.RESERVED, "Order was not reserved, or was already completed");
         require(order.reserver == msg.sender, "You are not the reserver of this order");
-
-        require(order.price == amount, "Incorrect amount of funds received");
-        require(keccak256(abi.encode(order.itemUrl)) == keccak256(abi.encode(itemUrl)), "Incorrect item URL");
 
         order.status = OrderStatus.COMPLETED;
         emit OrderCompleted(user, orderId);
 
         verifyZKEmailValidity(proofCommitment, pubInputCommitment, provingSystemAuxDataCommitment, proofGeneratorAddr, batchMerkleRoot, merkleProof, verificationDataBatchIndex);
     
-        _withdrawFunds(amount + order.reservePayment, order.token);
+        _withdrawFunds(order.price + order.reservePayment, order.token);
     }
 
     function verifyZKEmailValidity( //verifyBatchInclusion

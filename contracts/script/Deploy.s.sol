@@ -2,10 +2,10 @@
 pragma solidity ^0.8.28;
 
 import "forge-std/Script.sol";
-import "../src/PaymentRegistry.sol";
+import "../src/Escrow.sol";
 
 contract Deploy is Script {
-    PaymentRegistry public paymentRegistry;
+    Escrow public escrow;
 
     function setUp() public {}
 
@@ -17,13 +17,13 @@ contract Deploy is Script {
         vm.startBroadcast();
 
         // Deploy the contract
-        paymentRegistry = new PaymentRegistry(
+        escrow = new Escrow(
             address(0),
             address(0),
             bytes32(0)
         );
 
-        console.log("PaymentRegistry deployed to:", address(paymentRegistry));
+        console.log("Escrow deployed to:", address(escrow));
 
         vm.stopBroadcast();
 
@@ -36,8 +36,8 @@ contract Deploy is Script {
         
         vm.serializeAddress(
             deployed_addresses,
-            "paymentRegistry",
-            address(paymentRegistry)
+            "escrow",
+            address(escrow)
         );
 
         // Add timestamp
