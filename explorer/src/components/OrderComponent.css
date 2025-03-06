@@ -19,4 +19,11 @@
 .order-card p {
     color: #555; /* Slightly lighter text for details */
     margin: 5px 0; /* Margin between paragraphs */
+}
+
+/* New styles to remove bullet points */
+ul {
+    list-style-type: none; /* Remove bullet points */
+    padding: 0; /* Remove default padding */
+    margin: 0; /* Remove default margin */
 } 
