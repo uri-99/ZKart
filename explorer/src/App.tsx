@@ -1,11 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
-
-interface Product {
-  buyer: string;
-  productId: number;
-  price: number;
-}
+import { Product, OrderStatus } from './types/Product'; // Adjust the import path as necessary
+import OrderComponent from './components/OrderComponent';
 
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -40,13 +36,15 @@ const App: React.FC = () => {
         const mappedProducts = latestOrders.map((order: ethers.Log) => {
           const eventLog = order as ethers.EventLog;
           return {
-            buyer: eventLog.args.user,
-            productId: typeof eventLog.args.orderNonce === 'bigint' ? 
-              Number(eventLog.args.orderNonce) : 
-              eventLog.args.orderNonce,
+            itemUrl: eventLog.args.itemUrl,
             price: typeof eventLog.args.price === 'bigint' ? 
               Number(eventLog.args.price) : 
-              eventLog.args.price
+              eventLog.args.price,
+            token: eventLog.args.token,
+            status: OrderStatus.AVAILABLE,
+            unlockBlockTime: 0,
+            reserver: '',
+            reservePayment: 0
           };
         });
         
@@ -62,7 +60,7 @@ const App: React.FC = () => {
     fetchOrders();
 
     // Polling interval
-    const intervalId = setInterval(fetchOrders, 5000); // Poll every 5 seconds
+    const intervalId = setInterval(fetchOrders, 12000); // Poll every 12 seconds
 
     // Cleanup on component unmount
     return () => {
@@ -80,9 +78,7 @@ const App: React.FC = () => {
       <ul>
         {products.map((product, index) => (
           <li key={index}>
-            <p>Buyer: {product.buyer}</p>
-            <p>Product ID: {product.productId}</p>
-            <p>Price: {ethers.formatEther(product.price)} ETH</p>
+            <OrderComponent product={product} />
           </li>
         ))}
       </ul>
