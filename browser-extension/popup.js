@@ -23,10 +23,41 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
 
+    // Add this line to create a dropdown for currency selection
+    const currencySelect = document.getElementById('currencySelect'); // Assuming you have an element with this ID
+
+    function convertPrice(price, currency) {
+        let convertedPrice;
+
+        // Convert price to a number
+        const numericPrice = parseFloat(price);
+
+        // Convert price based on selected currency
+        switch (currency) {
+            case 'USDT':
+            case 'USDC':
+                convertedPrice = Math.floor(numericPrice * Math.pow(10, 6)); // Multiply by 10^6 and floor to avoid decimals
+                break;
+            case 'Ether':
+                convertedPrice = ethers.utils.parseEther(price); // Convert Ether to Wei
+                break;
+            case 'Wei':
+            default:
+                convertedPrice = numericPrice; // No conversion needed for Wei
+                break;
+        }
+
+        return convertedPrice;
+    }
+
     document.getElementById('buyCrypto').addEventListener('click', function() {
         const price = document.getElementById('priceInput').value;
         const address = document.getElementById('addressInput').value;
-        suggestSimpleTransaction(provider, itemUrl, price, address);
+        const currency = currencySelect.value; // Get the selected currency
+
+        const convertedPrice = convertPrice(price, currency); // Use the conversion function
+
+        suggestSimpleTransaction(provider, itemUrl, convertedPrice.toString(), address);
     });
   });
 
@@ -38,7 +69,7 @@ async function suggestSimpleTransaction(provider, itemUrl, price, address) {
             const selectedAddress = accounts[0]; // Get the first account
 
             // Define the smart contract address and function parameters
-            const contractAddress = '0x563c71C680E03DE49B6f7Be00268088ed3E0c89F'; // TODO read from deployment_output.json
+            const contractAddress = '0xcc9656bC7FfFF4B914D3DAfE6918da5273062dF1'; // TODO read from deployment_output.json
             // const price = 1000000000000000; // TODO Replace with the price set by the user
             const tokenAddress = ethers.constants.AddressZero; // TODO Replace with the token address if applicable. User must select from a dropdown or something
 
