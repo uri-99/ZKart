@@ -23,11 +23,11 @@ type ProofJSON struct {
 
 // Struct matching your VK JSON format
 type VerifyingKeyJSON struct {
-	Alfa1  [2]string    `json:"alfa1"` // G1 point [X, Y]
-	Beta2  [2][2]string `json:"beta2"` // G2 point [[X.A0, Y.A0], [X.A1, Y.A1]]
+	Alfa1  [2]string    `json:"alfa1"` // G1 point
+	Beta2  [2][2]string `json:"beta2"` // G2 point
 	Gamma2 [2][2]string `json:"gamma2"` // G2 point
 	Delta2 [2][2]string `json:"delta2"` // G2 point
-	IC     [][]string   `json:"IC"`    // List of G1 points [[X1, Y1], [X2, Y2], ...]
+	IC     [][]string   `json:"IC"`    // List of G1 points
 }
 
 // Helper function to convert decimal string to *big.Int
@@ -108,52 +108,47 @@ func main() {
     }
 
 	// beta2 -> vk.G2.Beta (G2 point)
-	vk.G2.Beta.X.A0.SetBigInt(toBigInt(parsedVK.Beta2[0][0]))
-	vk.G2.Beta.X.A1.SetBigInt(toBigInt(parsedVK.Beta2[0][1]))
-	vk.G2.Beta.Y.A0.SetBigInt(toBigInt(parsedVK.Beta2[1][0]))
-	// vk.G2.Beta.X.A1.SetBigInt(toBigInt(parsedVK.Beta2[1][0]))
-	// vk.G2.Beta.Y.A0.SetBigInt(toBigInt(parsedVK.Beta2[0][1]))
-	vk.G2.Beta.Y.A1.SetBigInt(toBigInt(parsedVK.Beta2[1][1]))
-	log.Printf("Parsed Beta X.A0: %s", vk.G2.Beta.X.A0.String())
-    log.Printf("Parsed Beta X.A1: %s", vk.G2.Beta.X.A1.String())
-    log.Printf("Parsed Beta Y.A0: %s", vk.G2.Beta.Y.A0.String())
-    log.Printf("Parsed Beta Y.A1: %s", vk.G2.Beta.Y.A1.String())
+	vk.G2.Beta.X.A1.SetBigInt(toBigInt(parsedVK.Beta2[0][0]))
+	vk.G2.Beta.X.A0.SetBigInt(toBigInt(parsedVK.Beta2[0][1]))
+	vk.G2.Beta.Y.A1.SetBigInt(toBigInt(parsedVK.Beta2[1][0]))
+	vk.G2.Beta.Y.A0.SetBigInt(toBigInt(parsedVK.Beta2[1][1]))
 	if !vk.G2.Beta.IsOnCurve(){
         log.Fatalf("Error: Parsed Beta point is not on the curve!")
     }
 
 	// gamma2 -> vk.G2.Gamma (G2 point)
-	vk.G2.Gamma.X.A0.SetBigInt(toBigInt(parsedVK.Gamma2[0][0]))
-	vk.G2.Gamma.X.A1.SetBigInt(toBigInt(parsedVK.Gamma2[0][1]))
-	vk.G2.Gamma.Y.A0.SetBigInt(toBigInt(parsedVK.Gamma2[1][0]))
-	// vk.G2.Gamma.X.A1.SetBigInt(toBigInt(parsedVK.Gamma2[1][0]))
-	// vk.G2.Gamma.Y.A0.SetBigInt(toBigInt(parsedVK.Gamma2[0][1]))
-	vk.G2.Gamma.Y.A1.SetBigInt(toBigInt(parsedVK.Gamma2[1][1]))
+	vk.G2.Gamma.X.A1.SetBigInt(toBigInt(parsedVK.Gamma2[0][0]))
+	vk.G2.Gamma.X.A0.SetBigInt(toBigInt(parsedVK.Gamma2[0][1]))
+	vk.G2.Gamma.Y.A1.SetBigInt(toBigInt(parsedVK.Gamma2[1][0]))
+	vk.G2.Gamma.Y.A0.SetBigInt(toBigInt(parsedVK.Gamma2[1][1]))
 	if !vk.G2.Gamma.IsOnCurve(){
         log.Fatalf("Error: Parsed Gamma point is not on the curve!")
     }
 
 	// delta2 -> vk.G2.Delta (G2 point)
-	vk.G2.Delta.X.A0.SetBigInt(toBigInt(parsedVK.Delta2[0][0]))
-	vk.G2.Delta.X.A1.SetBigInt(toBigInt(parsedVK.Delta2[0][1]))
-	vk.G2.Delta.Y.A0.SetBigInt(toBigInt(parsedVK.Delta2[1][0]))
-	vk.G2.Delta.Y.A1.SetBigInt(toBigInt(parsedVK.Delta2[1][1]))
+	vk.G2.Delta.X.A1.SetBigInt(toBigInt(parsedVK.Delta2[0][0]))
+	vk.G2.Delta.X.A0.SetBigInt(toBigInt(parsedVK.Delta2[0][1]))
+	vk.G2.Delta.Y.A1.SetBigInt(toBigInt(parsedVK.Delta2[1][0]))
+	vk.G2.Delta.Y.A0.SetBigInt(toBigInt(parsedVK.Delta2[1][1]))
 	if !vk.G2.Delta.IsOnCurve(){
         log.Fatalf("Error: Parsed Delta point is not on the curve!")
     }
 
-	// IC -> vk.G1.K (Slice of G1 points)
-	vk.G1.K = make([]bn254.G1Affine, len(parsedVK.IC)) // Pre-allocate the slice
-	for i, pointStr := range parsedVK.IC {
-		if len(pointStr) != 2 {
-			log.Fatalf("Invalid point structure in IC at index %d: expected 2 elements, got %d", i, len(pointStr))
-		}
-		vk.G1.K[i].X.SetBigInt(toBigInt(pointStr[0]))
-		vk.G1.K[i].Y.SetBigInt(toBigInt(pointStr[1]))
-	}
+    // IC -> vk.G1.K (Slice of G1 points)
+    vk.G1.K = make([]bn254.G1Affine, len(parsedVK.IC)) // Pre-allocate the slice
+    for i, pointStr := range parsedVK.IC {
+        if len(pointStr) != 2 {
+            log.Fatalf("Invalid point structure in IC at index %d: expected 2 elements, got %d", i, len(pointStr))
+        }
+        vk.G1.K[i].X.SetBigInt(toBigInt(pointStr[0]))
+        vk.G1.K[i].Y.SetBigInt(toBigInt(pointStr[1]))
 
-	log.Println("VK loaded into gnark struct.") // Removed vk details for brevity
+        if !vk.G1.K[i].IsOnCurve() {
+            log.Fatalf("Error: Parsed IC point at index %d is not on the curve!", i)
+        }
+    }
 
+	log.Println("VK loaded into gnark struct.")
 
 	// Write VK
 	outVKFile := "groth16.vk"
@@ -168,5 +163,12 @@ func main() {
 	}
 	log.Println("VK successfully written to", outVKFile)
 
+	// --- Parse Pub Inputs ---
+	
+
 	log.Println("\nParsing and writing complete.")
+
+	log.Println("\nVerifying the parsed proof...")
+	// Verify the proof
+
 }
