@@ -4,8 +4,8 @@ pragma solidity ^0.8.13;
 import "forge-std/Script.sol";
 import "@zk-email/contracts/interfaces/IDKIMRegistry.sol";
 import "@zk-email/contracts/DKIMRegistry.sol";
-import "./tmp/verifier.sol";
-import "./tmp/contract.sol";
+import "./verifier.sol";
+import "./contract.sol";
 
 contract Deploy is Script {
     IDKIMRegistry dkimRegistry;
