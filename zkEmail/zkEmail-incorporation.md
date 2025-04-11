@@ -1,6 +1,6 @@
 Here we have a flow diagram of the zkEmail protocol:
 
-![alt text](../images/zkEmail-flow-diagram.png)
+![alt text](../docs/images/zkEmail-flow-diagram.png)
 
 Note:
 
@@ -16,4 +16,4 @@ Create blueprint of zk-email parameter reader:
 https://docs.zk.email/zk-email-sdk/create-blueprint
 
 Possible technology to enhance the email interpretation:
-![alt text](../images/email-interpretation.png)
+![alt text](../docs/images/email-interpretation.png)
