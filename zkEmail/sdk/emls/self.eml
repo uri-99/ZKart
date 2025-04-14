@@ -1,0 +1,97 @@
+Delivered-To: umihura@itba.edu.ar
+Received: by 2002:a05:6214:29ee:b0:6e2:80f:fcad with SMTP id jv14csp8162613qvb;
+        Wed, 9 Apr 2025 12:36:59 -0700 (PDT)
+X-Received: by 2002:a05:6512:3093:b0:545:49d:5474 with SMTP id 2adb3069b0e04-54caf5abd74mr42672e87.20.1744227419309;
+        Wed, 09 Apr 2025 12:36:59 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1744227419; cv=none;
+        d=google.com; s=arc-20240605;
+        b=C+oXdPwY4Jf/4jbuvarZhsWufkhB8gpBYdz3VotJmRCPeVE2ovLXD6XFuaOROL0dMn
+         MaevT1LfgYwQw7NFn5lHmVcBUOyJv06TnAvHplFoznQbhYsvuKL9Cjbw1X+TJw9AbVdA
+         ST6YpAHEJANKp6okYtwVNUEcLeohPaGGziv2ZNI+3c9gLhgm4dfyMAGvJhmntkUmP4dG
+         V/6bBjsPwqDENKmZMT/pa1Gbo6LEpydI8/Yd7r/knJukN5lp/8qVUedlcJ0NbGxPw4gi
+         2X+3HVoPnPBnW53L+CE0T/A8M8w1WJF//67yxw0JiAIynllsGPdvkosvTClbs0Nn0O80
+         pD/g==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=to:subject:message-id:date:from:mime-version:dkim-signature;
+        bh=Vo6aY6I84AxFYw2VKy2qI45rUHioAfYbq42vQ3xvzWE=;
+        fh=e1euXkap0OmsHSXVNfJB8ZEFylUZtLk3wxkXtWHiLQw=;
+        b=Q198HXjuu4TvudSaTWLZdqJylngV6wqma/NyCpD1kM/ToIOugwA92HDuQDzfMcdaeF
+         Pqpq6Y1O4YrfAPJvNgS7+M9CNplvyJ845yKuiyCTSerUj83yse0pGao4ETmR4mc+tv7Z
+         LFWj3ExGpKVCLJKs0662A3V4i+qKGj9cn7mJ+MGSAxo8O5fqyKY07ctO8ECbAYWnz8gZ
+         nTXBkS8UnvaSAt5zQecetRWfyKHIgGr3MtAwEnIxhUm54454448tbHtEmkUn4wnWhGM+
+         rd8OuipHv/ckY3CHixXQhGNMs3ZMtwDRpgohF7eakshw6t6igHvqoj5ZPdEvNyg231N4
+         nuRg==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20230601 header.b=mYRyK4zx;
+       spf=pass (google.com: domain of uriel.mihura@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=uriel.mihura@gmail.com;
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com;
+       dara=pass header.i=@itba.edu.ar
+Return-Path: <uriel.mihura@gmail.com>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id 2adb3069b0e04-54c455e1eb8sor353932e87.9.2025.04.09.12.36.58
+        for <umihura@itba.edu.ar>
+        (Google Transport Security);
+        Wed, 09 Apr 2025 12:36:59 -0700 (PDT)
+Received-SPF: pass (google.com: domain of uriel.mihura@gmail.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20230601 header.b=mYRyK4zx;
+       spf=pass (google.com: domain of uriel.mihura@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=uriel.mihura@gmail.com;
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com;
+       dara=pass header.i=@itba.edu.ar
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1744227418; x=1744832218; darn=itba.edu.ar;
+        h=to:subject:message-id:date:from:mime-version:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=Vo6aY6I84AxFYw2VKy2qI45rUHioAfYbq42vQ3xvzWE=;
+        b=mYRyK4zxGkiDQNCVZlYOJzE+9rbMT8ysAvF42Gm0o5qWLhVtJYwxigefJUn5qlAT/5
+         5TtQn7XjEJCBMZGwDAKVE+oaTPZzZV8iDXFgZomJ2sxH2b6Q+zVfJ1O0/2+QUrLH+1jN
+         TWZgk1VLt8UH+wuO+c3z/nERY49I7m+/WaPvs49J5pddf3KD9ymfM9zEr5ZM1Dx+ahLN
+         HfmrCM0EeDFDe3e4Aqto0v1MquG4SM2ob9AGwLHkcnQWH+546mUAOukjrxas4ZjK3nZN
+         /sqn80o84bSz4BdMxZisaiOzFrnf2te39zHB2nSD9NmErx38tRWKvu4alIQKLBgIA64A
+         F3Zg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1744227418; x=1744832218;
+        h=to:subject:message-id:date:from:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=Vo6aY6I84AxFYw2VKy2qI45rUHioAfYbq42vQ3xvzWE=;
+        b=BxiP7oHBlISm3nPfk+JOyVqAOz0ylmgswCbRLhzWZhr959nnmsJyFQD2RFop1q6DX8
+         VnKwj+lp8kEvODrpedIjUVK8eOpxdcOBXzTB1pmTND5BnRNu9qHDQwfZumEI/uMzwcK9
+         NZbJplEzihTOD8HbVDUVCZabaQ1tYWj0UbhDfqVXL/ABDbv6FJ1E5lOsH/fUVRaw3XHy
+         5+ioR0VeAtQlUuJEEuX+r5vU+/yzTuAtWfNHULmwFC79BQbbidZnXiJ2c5ZRVuNqmbvu
+         12umKK6NOLE8W9E4k2QeQqAreA5o5E/KNLUeEjDyvd1nmZzA0O8BxvXo+xkW5GUjaK0m
+         JDLw==
+X-Gm-Message-State: AOJu0Yz0Vk4yQo9oAM8gclH3JPAS3IiLt74Nn8SXPN1g6UkzQQ5mAs0r
+	MQTrWtInH5M+KU+lai8nVeAFUk/NcrmGKNWb07Fbm7qAMC99yWRmkm9oI5aj9Z3lQhM+Q5Lpy4N
+	CHF3Kgj1zV8UQy5zgg1zKFfWi9kMxrjBo
+X-Gm-Gg: ASbGnctzS+GJ2VkefolC6xxUOD+g6x+1Vwt4s1zswqxEIYTp867PELyOvZdwOIXoH+9
+	tmDISjDwTFsQb2oe5QGlCB5Sqfb9A/EHmwtSi8jpHmwlEbC/dyX8y37a4Jl71xP4QMV/Hfb6GFt
+	mMuj6btb2VH+DEc55qrncAMl10
+X-Google-Smtp-Source: AGHT+IGHUrbeza4KIbRJx+RKsGQCe6B90O3gPx5Bphyr8aZ4gAjbEzDF3uvcXa/NQCBdMhr096ySMUJKRe6e6JGHyH0=
+X-Received: by 2002:a05:651c:12ca:b0:309:2ed:72df with SMTP id
+ 38308e7fff4ca-30facc2430bmr714471fa.24.1744227418111; Wed, 09 Apr 2025
+ 12:36:58 -0700 (PDT)
+MIME-Version: 1.0
+From: uriel mihura <uriel.mihura@gmail.com>
+Date: Wed, 9 Apr 2025 16:36:46 -0300
+X-Gm-Features: ATxdqUGonB24yfs_bJqu5VdzjvPFyh30h9Obv70Vtpy93Ei3qnZaEbEVY2KuXmM
+Message-ID: <CADtCCWEQn85LdWmGvRSVnUa=-KUyaVGBKxMT39ZeLomxChsgEA@mail.gmail.com>
+Subject: =?UTF-8?Q?Recibiste_tu_compra=2C_=C2=A1que_la_disfrutes=21?=
+To: umihura@itba.edu.ar
+Content-Type: multipart/alternative; boundary="000000000000aa06a806325d97f1"
+
+--000000000000aa06a806325d97f1
+Content-Type: text/plain; charset="UTF-8"
+
+<!-- HERE GOES ALL COMPONENTS -->
+
+!important">Maquina Patillera Trimmer Vintage T9 Negro Profesional Mixio</h1>
+
+Hicimos la entrega en Av. Calle 123, Localidad C.P. 1123.</p>
+
+--000000000000aa06a806325d97f1
+Content-Type: text/html; charset="UTF-8"
+
+<div dir="ltr"><pre>&lt;!-- HERE GOES ALL COMPONENTS --&gt;<br><br>!important&quot;&gt;Maquina Patillera Trimmer Vintage T9 Negro Profesional Mixio&lt;/h1&gt;<br><br>Hicimos la entrega en Av. Calle 123, Localidad C.P. 1123.&lt;/p&gt;</pre><br></div>
+
+--000000000000aa06a806325d97f1--
