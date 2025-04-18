@@ -55731,9 +55731,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Add this line to create a dropdown for currency selection
-    const currencySelect = document.getElementById('currencySelect'); // Assuming you have an element with this ID
+    const currencySelect = document.getElementById('currencySelect');
 
     function convertPrice(price, currency) {
+        console.log('Converting price:', price, 'Currency:', currency);
         let convertedPrice;
 
         // Convert price to a number
@@ -55754,17 +55755,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
         }
 
+        console.log('Converted price:', convertedPrice);
+
         return convertedPrice;
     }
 
     document.getElementById('buyCrypto').addEventListener('click', function() {
         const price = document.getElementById('priceInput').value;
         const address = document.getElementById('addressInput').value;
-        const currency = currencySelect.value; // Get the selected currency
+        const currency = currencySelect.value;
 
-        const convertedPrice = convertPrice(price, currency); // Use the conversion function
+        const convertedPrice = convertPrice(price, currency);
 
-        suggestSimpleTransaction(provider, itemUrl, convertedPrice.toString(), address);
+        suggestSimpleTransaction(provider, itemUrl, convertedPrice, address);
     });
   });
 
@@ -55777,7 +55780,6 @@ async function suggestSimpleTransaction(provider, itemUrl, price, address) {
 
             // Define the smart contract address and function parameters
             const contractAddress = '0xcc9656bC7FfFF4B914D3DAfE6918da5273062dF1'; // TODO read from deployment_output.json
-            // const price = 1000000000000000; // TODO Replace with the price set by the user
             const tokenAddress = ethers.constants.AddressZero; // TODO Replace with the token address if applicable. User must select from a dropdown or something
 
             console.log('Price:', price);
@@ -55797,7 +55799,7 @@ async function suggestSimpleTransaction(provider, itemUrl, price, address) {
             const transactionParameters = {
                 to: contractAddress,
                 from: selectedAddress,
-                value: price.toString(16),
+                value: price,
                 data: ethers.utils.hexlify(
                     ethers.utils.concat([
                         functionSelector,

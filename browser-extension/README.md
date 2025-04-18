@@ -10,7 +10,7 @@ Current features:
 To run:
 ```bash
 cd ~/BitCart/browser-extension
-browserify popup.js -o bundle.js
+browserify popup/popup.js -o out/bundle.js
 ```
 
 Then open `broswe-extension` as extension in `chrome://extensions`
