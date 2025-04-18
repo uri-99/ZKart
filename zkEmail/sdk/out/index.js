@@ -31,16 +31,16 @@ function main() {
         console.log("Proof data: ", proof.props.proofData);
         console.log("Public outputs: ", proof.props.publicOutputs);
         console.log("props: ", proof.props);
-        // // Verify the proof
-        // // Off chain:
-        // const verification = await blueprint.verifyProof(proof);
-        // console.log("Verification: ", verification);
-        // // If you only have the proof data:
-        // // const verified = await blueprint.verifyProofData(
-        // //     JSON.stringify(proof.props.publicOutputs),
-        // //     JSON.stringify(proof.props.proofData)
-        // // );
-        // // console.log("Proof is valid: ", verified);
+        // Verify the proof
+        // Off chain:
+        const verification = yield blueprint.verifyProof(proof);
+        console.log("Verification: ", verification);
+        // If you only have the proof data:
+        // const verified = await blueprint.verifyProofData(
+        //     JSON.stringify(proof.props.publicOutputs),
+        //     JSON.stringify(proof.props.proofData)
+        // );
+        // console.log("Proof is valid: ", verified);
     });
 }
 main();

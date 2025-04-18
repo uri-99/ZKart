@@ -25,18 +25,18 @@ async function main() {
     console.log("Public outputs: ", proof.props.publicOutputs);
     console.log("props: ", proof.props);
 
-    // // Verify the proof
-    // // Off chain:
-    // const verification = await blueprint.verifyProof(proof);
+    // Verify the proof
+    // Off chain:
+    const verification = await blueprint.verifyProof(proof);
 
-    // console.log("Verification: ", verification);
+    console.log("Verification: ", verification);
 
-    // // If you only have the proof data:
-    // // const verified = await blueprint.verifyProofData(
-    // //     JSON.stringify(proof.props.publicOutputs),
-    // //     JSON.stringify(proof.props.proofData)
-    // // );
-    // // console.log("Proof is valid: ", verified);
+    // If you only have the proof data:
+    // const verified = await blueprint.verifyProofData(
+    //     JSON.stringify(proof.props.publicOutputs),
+    //     JSON.stringify(proof.props.proofData)
+    // );
+    // console.log("Proof is valid: ", verified);
 }
 
 main();
