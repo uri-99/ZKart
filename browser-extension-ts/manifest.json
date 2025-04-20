@@ -1,0 +1,19 @@
+{
+    "manifest_version": 3,
+    "name": "BitCart",
+    "version": "1.0",
+    "description": "Extracts product name and price from e-commerce pages",
+    "permissions": ["activeTab"],
+    "action": {
+      "default_popup": "out/popup/popup.html"
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["out/read-page-content.js"]
+      }
+    ],
+    "background": {
+      "service_worker": "out/background.js"
+    }
+  }
