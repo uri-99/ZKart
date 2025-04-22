@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "BitCart",
     "version": "1.0",
-    "description": "Extracts product name and price from e-commerce pages",
+    "description": "Scrapes ecommerce product info and sends to BitCart smart contract for purchase",
     "permissions": ["activeTab"],
     "action": {
       "default_popup": "out/popup/popup.html"
