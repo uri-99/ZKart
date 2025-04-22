@@ -7,11 +7,12 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rm -rf out",
     "copy:html": "cpx \"src/**/*.html\" out/",
-    "build": "pnpm run clean && pnpm run build:popup && pnpm run build:read-page-content && pnpm run build:background && pnpm run copy:html",
+    "build": "pnpm run clean && pnpm run build:popup && pnpm run build:read-page-content && pnpm run build:background-dev && pnpm run copy:html",
     "build:popup": "esbuild src/popup/popup.ts --bundle --outfile=out/popup/popup.js --platform=browser --format=esm --sourcemap --minify",
     "build:read-page-content": "esbuild src/read-page-content.ts --bundle --outfile=out/read-page-content.js --platform=browser --format=iife --sourcemap --minify",
-    "build:background": "esbuild src/background.ts --bundle --outfile=out/background.js --platform=browser --format=esm --sourcemap --minify",
-    "watch": "pnpm run clean && pnpm run build:popup --watch=forever & pnpm run build:read-page-content --watch=forever & pnpm run build:background --watch=forever & pnpm run copy:html --watch=forever",
+    "build:background": "esbuild src/background.ts --bundle --outfile=out/background.js --platform=browser --format=esm --sourcemap --minify --define:import.meta.env='{ \"MODE\": \"production\" }'",
+    "build:background-dev": "esbuild src/background.ts --bundle --outfile=out/background.js --platform=browser --format=esm --sourcemap --define:import.meta.env='{ \"MODE\": \"development\" }'",
+    "watch": "pnpm run clean && pnpm run build:popup --watch=forever & pnpm run build:read-page-content --watch=forever & pnpm run build:background-dev --watch=forever & pnpm run copy:html --watch=forever",
     "start": "echo \"Run 'pnpm run watch' for development build, then load the 'dist' folder in your browser extension page.\""
   },
   "keywords": [],
@@ -25,6 +26,9 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@web3-onboard/core": "^2.24.1",
+    "@web3-onboard/injected-wallets": "^2.11.3",
+    "@web3-onboard/walletconnect": "^2.6.2",
     "ethers": "^6.13.5"
   }
 }
