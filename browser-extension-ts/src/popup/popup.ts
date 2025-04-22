@@ -1,5 +1,6 @@
 import { Product } from '../types/product';
-import { Input } from '../types/input';
+import { UserInput } from '../types/user-input';
+import { Currency } from '../constants/tokens';
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -24,12 +25,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.error("Product info not available");
                 return;
             }
-            var inputInfo: Input = {
+            var userInput: UserInput = {
                 price: priceInput.value,
-                currency: currencySelect.value,
+                currency: currencySelect.value as Currency,
                 deliveryAddress: addressInput.value
             };
-            handleBuyButtonClick(productInfo, inputInfo);
+            handleBuyButtonClick(productInfo, userInput);
         });
     } else {
         console.error("Buy button not found!");
@@ -77,41 +78,21 @@ function showProductInfo(productInfo: Product) {
     }
 }
 
-function handleBuyButtonClick(productInfo: Product, inputInfo: Input) {
+function handleBuyButtonClick(productInfo: Product, userInput: UserInput) {
     console.log("Buy button clicked!");
     console.log("productInfo: ", productInfo);
-    console.log("inputInfo: ", inputInfo);
+    console.log("userInput: ", userInput);
 
-    // TODO this will be needed to send to the contract, implement when we know what the contract needs
-    // // Parse the price based on the selected currency
-    // const parsedPrice = parsePrice(priceInput.value, currencySelect.value);
-    // console.log("Parsed price: ", parsedPrice);
-
-    // send tx to contract. call contract.send or whate
-}
-
-function parsePrice(priceInput: string, currency: string): BigInt | undefined {
-    console.log("parsing");
-    console.log("Parsing price: ", priceInput, " with currency: ", currency);
-
-    let convertedPrice: BigInt | undefined;
-
-    switch (currency) {
-        case 'USDT':
-        case 'USDC':
-            convertedPrice = BigInt(priceInput);
-            break;
-        case 'Ether':
-            convertedPrice = BigInt(priceInput);
-            break;
-        case 'Wei':
-            convertedPrice = BigInt(priceInput);
-            break;
-        default:
-            console.error("Unsupported currency: ", currency);
-            break;
-    }
-
-    console.log("Converted price: ", convertedPrice);
-    return convertedPrice;
+    // Send message to background script to initiate the transaction
+    chrome.runtime.sendMessage({
+        action: "sendTransaction",
+        productInfo: productInfo,
+        userInput: userInput
+    }, (response) => {
+        if (response?.status === "success") {
+            console.log("Transaction sent successfully:", response.txHash);
+        } else {
+            console.error("Transaction failed:", response?.message);
+        }
+    });
 }
