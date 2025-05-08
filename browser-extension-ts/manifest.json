@@ -3,7 +3,13 @@
     "name": "BitCart",
     "version": "1.0",
     "description": "Scrapes ecommerce product info and sends to BitCart smart contract for purchase",
-    "permissions": ["activeTab"],
+    "permissions": [
+      "activeTab",
+      "scripting"
+    ],
+    "host_permissions": [
+      "<all_urls>"
+    ],
     "action": {
       "default_popup": "out/popup/popup.html"
     },
