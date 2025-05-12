@@ -13,4 +13,4 @@ cd ~/BitCart/browser-extension
 browserify popup/popup.js -o out/bundle.js
 ```
 
-Then open `broswe-extension` as extension in `chrome://extensions`
+Then open `broswer-extension` as extension in `chrome://extensions`
