@@ -2,6 +2,10 @@ This is an MVP of a project that will allow users to buy Amazon items using stab
 
 This project can work via a centralized service, or via a decentralized (P2P)service.
 
+> [!IMPORTANT]
+> This is an elegant solution that addresses a problem that is no longer relevant, due to recent economic regulations in Argentina that have allowed the conversion of large amounts of cryptocurrency to fiat currency.
+> Therefore, this project is discontinued until further notice
+
 ## Centralized Service
 
 Setup:
