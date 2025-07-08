@@ -6,7 +6,10 @@ This project can work via a centralized service, or via a decentralized (P2P)ser
 > This is an elegant solution that addresses a problem that is no longer relevant, due to recent economic regulations in Argentina that have allowed the conversion of large amounts of cryptocurrency to fiat currency.
 > Therefore, this project is discontinued until further notice
 
-## Centralized Service
+Flow diagram:
+[diagram](./docs/images/bitcart.png)
+
+## As a Centralized Service
 
 Setup:
 
@@ -29,7 +32,7 @@ The usage flow is the following:
 6. The Centralized service generates a zkEmail ZKproof of this email.
 7. With the ZKproof, verified in Aligned, the Centralized service withdraws the funds from the Escrow, generating revenue.
 
-## Descentralized Service
+## As a Descentralized Service
 
 Setup:
 
